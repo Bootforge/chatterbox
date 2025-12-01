@@ -1,7 +1,11 @@
 from typing import Any, Dict, Optional
+import warnings
 
 import torch
 import torch.nn as nn
+
+# Suppress LoRACompatibleLinear deprecation warning from diffusers until updated
+warnings.filterwarnings("ignore", message=".*LoRACompatibleLinear.*is deprecated", category=FutureWarning)
 from diffusers.models.attention import (
     GEGLU,
     GELU,

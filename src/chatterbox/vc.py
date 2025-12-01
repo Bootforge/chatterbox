@@ -1,7 +1,11 @@
 from pathlib import Path
+import warnings
 
 import librosa
 import torch
+
+# Suppress pkg_resources deprecation warning from perth until it's updated
+warnings.filterwarnings("ignore", message="pkg_resources is deprecated", category=UserWarning)
 import perth
 from huggingface_hub import hf_hub_download
 from safetensors.torch import load_file

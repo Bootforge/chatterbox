@@ -1,9 +1,13 @@
 from dataclasses import dataclass
 from pathlib import Path
 import os
+import warnings
 
 import librosa
 import torch
+
+# Suppress pkg_resources deprecation warning from perth until it's updated
+warnings.filterwarnings("ignore", message="pkg_resources is deprecated", category=UserWarning)
 import perth
 import torch.nn.functional as F
 from safetensors.torch import load_file as load_safetensors

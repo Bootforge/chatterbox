@@ -1,6 +1,7 @@
 # Copyright (c) 2025 Resemble AI
 # MIT License
 import logging
+import warnings
 from typing import Union, Optional, List
 
 logger = logging.getLogger(__name__)
@@ -11,6 +12,13 @@ import torch.nn.functional as F
 from torch import nn, Tensor
 from transformers import LlamaModel, LlamaConfig
 from transformers.generation.logits_process import TopPLogitsWarper, RepetitionPenaltyLogitsProcessor, MinPLogitsWarper
+
+# Import DynamicCache for proper KV cache handling (avoids deprecation warning)
+try:
+    from transformers.cache_utils import DynamicCache
+    _HAS_DYNAMIC_CACHE = True
+except ImportError:
+    _HAS_DYNAMIC_CACHE = False
 
 from .modules.learned_pos_emb import LearnedPositionEmbeddings
 
@@ -318,15 +326,21 @@ class T3(nn.Module):
         top_p_warper = TopPLogitsWarper(top_p=top_p)
         repetition_penalty_processor = RepetitionPenaltyLogitsProcessor(penalty=float(repetition_penalty))
 
+        # Initialize DynamicCache to avoid tuple-of-tuples deprecation warning
+        initial_cache = DynamicCache() if _HAS_DYNAMIC_CACHE else None
+
         # ---- Initial Forward Pass (no kv_cache yet) ----
-        output = self.patched_model(
-            inputs_embeds=inputs_embeds,
-            past_key_values=None,
-            use_cache=True,
-            output_attentions=True,
-            output_hidden_states=True,
-            return_dict=True,
-        )
+        # Suppress the past_key_values deprecation warning for older transformers
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message=".*past_key_values.*tuple of tuples.*deprecated", category=FutureWarning)
+            output = self.patched_model(
+                inputs_embeds=inputs_embeds,
+                past_key_values=initial_cache,
+                use_cache=True,
+                output_attentions=True,
+                output_hidden_states=True,
+                return_dict=True,
+            )
         # Initialize kv_cache with the full context.
         past = output.past_key_values
 
@@ -379,13 +393,15 @@ class T3(nn.Module):
             next_token_embed = torch.cat([next_token_embed, next_token_embed])
 
             # Forward pass with only the new token and the cached past.
-            output = self.patched_model(
-                inputs_embeds=next_token_embed,
-                past_key_values=past,
-                output_attentions=True,
-                output_hidden_states=True,
-                return_dict=True,
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=".*past_key_values.*tuple of tuples.*deprecated", category=FutureWarning)
+                output = self.patched_model(
+                    inputs_embeds=next_token_embed,
+                    past_key_values=past,
+                    output_attentions=True,
+                    output_hidden_states=True,
+                    return_dict=True,
+                )
             # Update the kv_cache.
             past = output.past_key_values
 

@@ -3,13 +3,13 @@ name = "chatterbox-tts"
 version = "0.1.4"
 description = "Chatterbox: Open Source TTS and Voice Conversion by Resemble AI"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.13"  # Pin to <3.13 for NumPy 1.x compatibility
 license = {file = "LICENSE"}
 authors = [
     {name = "resemble-ai", email = "engineering@resemble.ai"}
 ]
 dependencies = [
-    "numpy>=1.24.0,<1.26.0",
+    "numpy>=1.26.0,<2.0.0",  # Pin to 1.x to avoid ABI incompatibility with compiled extensions
     "librosa==0.11.0",
     "s3tokenizer",
     "torch==2.6.0",
@@ -22,9 +22,14 @@ dependencies = [
     "spacy-pkuseg",
     "pykakasi==2.3.0",
     "gradio==5.44.1",
-    "russian-text-stresser @ git+https://github.com/Vuizur/add-stress-to-epub",
-
+    "ml-dtypes>=0.5.0",
+    "setuptools>=61.0,<81",  # Pin <81 until resemble-perth updates pkg_resources usage
 ]
+
+[project.optional-dependencies]
+chinese = ["pkuseg>=0.0.25"]
+# Note: russian extra is incompatible with gradio 5.x due to spacy/pydantic conflicts
+# russian = ["russian-text-stresser @ git+https://github.com/Vuizur/add-stress-to-epub"]
 
 [project.urls]
 Homepage = "https://github.com/resemble-ai/chatterbox"

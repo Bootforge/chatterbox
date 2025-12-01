@@ -2,11 +2,19 @@
 # Author: Manmay Nakhashi
 # MIT License
 import math
+import warnings
 
 import torch
 from torch import nn
 import torch.nn.functional as F
 from einops import rearrange
+
+# Check if new sdpa_kernel API is available (torch >= 2.5)
+try:
+    from torch.nn.attention import sdpa_kernel, SDPBackend
+    _USE_NEW_SDPA_API = True
+except ImportError:
+    _USE_NEW_SDPA_API = False
 
 
 class RelativePositionBias(nn.Module):
@@ -91,7 +99,35 @@ class AttentionQKV(nn.Module):
 
     def flash_attention(self, q, k, v, mask=None):
         config = self.flash_config if self.flash_config else {}
-        with torch.backends.cuda.sdp_kernel(**config):
+        if _USE_NEW_SDPA_API and config:
+            # Convert old config format to new SDPBackend format
+            backends = []
+            if config.get("enable_flash", True):
+                backends.append(SDPBackend.FLASH_ATTENTION)
+            if config.get("enable_math", True):
+                backends.append(SDPBackend.MATH)
+            if config.get("enable_mem_efficient", True):
+                backends.append(SDPBackend.EFFICIENT_ATTENTION)
+            if not backends:
+                backends = [SDPBackend.MATH]  # Default fallback
+            with sdpa_kernel(backends):
+                out = F.scaled_dot_product_attention(
+                    q, k, v,
+                    attn_mask=mask,
+                    dropout_p=self.dropout_rate if self.training else 0.
+                )
+        elif config:
+            # Fallback for older torch versions, suppress deprecation warning
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=".*sdp_kernel.*deprecated", category=FutureWarning)
+                with torch.backends.cuda.sdp_kernel(**config):
+                    out = F.scaled_dot_product_attention(
+                        q, k, v,
+                        attn_mask=mask,
+                        dropout_p=self.dropout_rate if self.training else 0.
+                    )
+        else:
+            # No config, just call directly
             out = F.scaled_dot_product_attention(
                 q, k, v,
                 attn_mask=mask,
