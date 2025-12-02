@@ -208,8 +208,11 @@ class T3(nn.Module):
         mask_speech = torch.arange(len_speech, device=device)[None] >= speech_token_lens[:, None]  # (B, len_speech)
         masked_text = text_tokens.masked_fill(mask_text, IGNORE_ID)
         masked_speech = speech_tokens.masked_fill(mask_speech, IGNORE_ID)
-        loss_text = F.cross_entropy(out.text_logits, masked_text, ignore_index=IGNORE_ID)
-        loss_speech = F.cross_entropy(out.speech_logits, masked_speech, ignore_index=IGNORE_ID)
+        # Reshape logits for cross_entropy: (B, seq, vocab) -> (B, vocab, seq)
+        text_logits = out.text_logits.permute(0, 2, 1)
+        speech_logits = out.speech_logits.permute(0, 2, 1)
+        loss_text = F.cross_entropy(text_logits, masked_text, ignore_index=IGNORE_ID)
+        loss_speech = F.cross_entropy(speech_logits, masked_speech, ignore_index=IGNORE_ID)
 
         return loss_text, loss_speech
 

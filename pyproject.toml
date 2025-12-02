@@ -31,6 +31,17 @@ chinese = ["pkuseg>=0.0.25"]
 # Note: russian extra is incompatible with gradio 5.x due to spacy/pydantic conflicts
 # russian = ["russian-text-stresser @ git+https://github.com/Vuizur/add-stress-to-epub"]
 
+vietnamese = ["underthesea>=6.0.0"]
+
+training = [
+    "datasets>=2.14.0",
+    "tensorboard>=2.13.0",
+    "wandb>=0.15.0",
+    "accelerate>=0.20.0",
+    "pyyaml>=6.0",
+    "tqdm>=4.65.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/resemble-ai/chatterbox"
 Repository = "https://github.com/resemble-ai/chatterbox"
