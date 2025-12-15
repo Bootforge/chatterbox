@@ -9,7 +9,7 @@ authors = [
     {name = "resemble-ai", email = "engineering@resemble.ai"}
 ]
 dependencies = [
-    "numpy>=1.26.0,<2.0.0",  # Pin to 1.x to avoid ABI incompatibility with compiled extensions
+    "numpy>=1.26.0",  # Pin to 1.x to avoid ABI incompatibility with compiled extensions
     "librosa==0.11.0",
     "s3tokenizer",
     "torch==2.6.0",
